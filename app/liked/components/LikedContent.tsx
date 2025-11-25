@@ -9,7 +9,6 @@ import MediaItem from "@/components/MediaItem";
 import LikeButton from "@/components/LikeButton";
 import useOnPlay from "@/hooks/useOnPlay";
 import useAuthModal from "@/hooks/useAuthModal";
-import { openAsBlob } from "fs";
 
 interface LikedContentProps {
   songs: Song[];

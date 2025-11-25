@@ -180,7 +180,6 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
               transition-transform
               duration-150
               shadow-[0_0_14px_rgba(214,211,26,0.75)]
-              ${isPlaying ? "animate-pulse" : ""}
             `}
           >
             <PlayIcon size={26} />

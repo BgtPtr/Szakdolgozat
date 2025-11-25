@@ -47,14 +47,6 @@ const Header: React.FC<HeaderProps> = ({ children, className }) => {
     router.forward();
   };
 
-  const handleGoHome = () => {
-    router.push("/");
-  };
-
-  const handleGoSearch = () => {
-    router.push("/search");
-  };
-
   return (
     <div
       className={twMerge(
@@ -102,39 +94,6 @@ const Header: React.FC<HeaderProps> = ({ children, className }) => {
           >
             <RxCaretRight size={26} className="text-white" />
           </button>
-
-          <div className="hidden md:flex items-center gap-x-2 ml-3">
-            <button
-              onClick={handleGoHome}
-              className="
-                rounded-full
-                bg-black/30
-                hover:bg-black/50
-                transition
-                p-2
-                flex
-                items-center
-                justify-center
-              "
-            >
-              <HiHome className="text-white" size={20} />
-            </button>
-            <button
-              onClick={handleGoSearch}
-              className="
-                rounded-full
-                bg-black/30
-                hover:bg-black/50
-                transition
-                p-2
-                flex
-                items-center
-                justify-center
-              "
-            >
-              <BiSearch className="text-white" size={20} />
-            </button>
-          </div>
         </div>
 
         {/* Jobb felső: auth részek */}
