@@ -26,6 +26,7 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
     );
   }
 
+  // Másodpercek -> "m:ss" formátum
   const formatTime = (seconds: number | undefined) => {
     if (!seconds || Number.isNaN(seconds) || seconds <= 0) return "--:--";
     const total = Math.floor(seconds);
@@ -101,9 +102,11 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
         </div>
       )}
 
+      {/* LISTA NÉZET – itt jelenik meg BPM + hossz */}
       {viewMode === "list" && (
         <div className="flex flex-col gap-y-1">
           {songs.map((song) => {
+            // Hossz (másodpercben) – adatbázisból, pl. "duration" mező
             const rawDuration = (song as any).duration as
               | number
               | undefined
@@ -111,6 +114,16 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
             const formattedDuration = formatTime(
               typeof rawDuration === "number" ? rawDuration : undefined
             );
+
+            // BPM – adatbázis "bpm" mezőből
+            const rawBpm = (song as any).bpm as
+              | number
+              | undefined
+              | null;
+            const bpmLabel =
+              typeof rawBpm === "number" && !Number.isNaN(rawBpm) && rawBpm > 0
+                ? `${Math.round(rawBpm)} bpm`
+                : "-- bpm";
 
             return (
               <div
@@ -131,13 +144,16 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
                   transition
                 "
               >
-                {/* Dalcím + előadó */}
+                {/* Dalcím + előadó + BPM */}
                 <div className="flex flex-col flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">
                     {song.title ?? "Ismeretlen dal"}
                   </p>
                   <p className="text-xs text-neutral-400 truncate">
                     {song.author ?? "Ismeretlen előadó"}
+                  </p>
+                  <p className="text-[11px] text-neutral-500 truncate">
+                    {bpmLabel}
                   </p>
                 </div>
 

@@ -7,6 +7,8 @@ export interface Song{
   title: string;
   song_path: string;
   image_path: string;
+  bpm?: number | null;
+  duration?: number | null;
 }
 
 export interface UserDetails{

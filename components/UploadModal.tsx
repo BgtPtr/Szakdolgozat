@@ -1,19 +1,22 @@
 "use client";
 
+import { useState } from "react";
+import { FieldValues, useForm, SubmitHandler } from "react-hook-form";
+import { useRouter } from "next/navigation";
+
 import useUploadModal from "@/hooks/useUploadModal";
+import { useUser } from "@/hooks/useUser";
+import { useSupabase } from "@/providers/SupabaseProvider";
+
 import Modal from "./Modal";
 import Input from "./Input";
-import { FieldValues, useForm, SubmitHandler } from "react-hook-form";
-import { useState } from "react";
 import Button from "./Button";
 import toast from "react-hot-toast";
-import { useUser } from "@/hooks/useUser";
 import uniqid from "uniqid";
-import { useRouter } from "next/navigation";
-import { useSupabase } from "@/providers/SupabaseProvider";
 
 const UploadModal = () => {
   const [isLoading, setIsLoading] = useState(false);
+
   const uploadModal = useUploadModal();
   const { user } = useUser();
   const supabaseClient = useSupabase();
@@ -35,12 +38,98 @@ const UploadModal = () => {
     }
   };
 
+    const detectBpmAndDuration = async (
+    songFile: File
+  ): Promise<{ bpm: number | null; duration: number | null }> => {
+    if (typeof window === "undefined") {
+      return { bpm: null, duration: null };
+    }
+
+    try {
+      console.log("▶️ BPM detektálás indul a fájlra:", songFile.name);
+
+      const arrayBuffer = await songFile.arrayBuffer();
+
+      const AudioCtx =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) {
+        console.warn("AudioContext nem elérhető ebben a böngészőben.");
+        return { bpm: null, duration: null };
+      }
+
+      const audioContext = new AudioCtx();
+
+      const audioBuffer: AudioBuffer = await audioContext.decodeAudioData(
+        arrayBuffer
+      );
+
+      const durationSeconds = Math.round(audioBuffer.duration);
+      console.log("⏱ Detektált hossz (mp):", durationSeconds);
+
+      // 👉 A hivatalos példa szerint: ha 2 csatorna, átlagoljuk őket
+      const audioData: number[] = [];
+
+      if (audioBuffer.numberOfChannels >= 2) {
+        const channel1 = audioBuffer.getChannelData(0);
+        const channel2 = audioBuffer.getChannelData(1);
+        const len = channel1.length;
+
+        for (let i = 0; i < len; i++) {
+          audioData[i] = (channel1[i] + channel2[i]) / 2;
+        }
+      } else {
+        const ch = audioBuffer.getChannelData(0);
+        const len = ch.length;
+        for (let i = 0; i < len; i++) {
+          audioData[i] = ch[i];
+        }
+      }
+
+      const { default: MusicTempo } = await import("music-tempo");
+      const mt = new MusicTempo(audioData);
+
+      let bpm: number | null = null;
+
+      if (
+        typeof mt.tempo === "number" &&
+        !Number.isNaN(mt.tempo) &&
+        mt.tempo > 0
+      ) {
+        bpm = Math.round(mt.tempo);
+      } else if (Array.isArray(mt.beats) && mt.beats.length > 1) {
+        // Fallback: ha a tempo mező üres, kiszámoljuk a beatek közti átlagos időből
+        const intervals: number[] = [];
+        for (let i = 1; i < mt.beats.length; i++) {
+          intervals.push(mt.beats[i] - mt.beats[i - 1]);
+        }
+        const avgInterval =
+          intervals.reduce((sum, v) => sum + v, 0) / intervals.length;
+        const derived = 60 / avgInterval; // 60s / (átlagos máspodperc/beat) = BPM
+
+        if (derived > 0 && Number.isFinite(derived)) {
+          bpm = Math.round(derived);
+        }
+      }
+
+      console.log("🎚 Számolt BPM:", bpm, "Beats count:", mt.beats?.length);
+
+      return {
+        bpm,
+        duration: durationSeconds > 0 ? durationSeconds : null,
+      };
+    } catch (error) {
+      console.error("❌ Hiba az offline BPM felismerésnél:", error);
+      return { bpm: null, duration: null };
+    }
+  };
+
+
   const onSubmit: SubmitHandler<FieldValues> = async (values) => {
     try {
       setIsLoading(true);
 
-      const imageFile = values.image?.[0];
-      const songFile = values.song?.[0];
+      const imageFile = values.image?.[0] as File | undefined;
+      const songFile = values.song?.[0] as File | undefined;
 
       if (!imageFile || !songFile || !user) {
         toast.error("Hiányzó mezők!");
@@ -49,7 +138,11 @@ const UploadModal = () => {
 
       const uniqueID = uniqid();
 
-      // Zenefeltöltés
+      // 1) Lokális BPM + hossz felismerés (OFFLINE)
+      const { bpm, duration } = await detectBpmAndDuration(songFile);
+      console.log("Lokálisan számolt BPM / duration:", { bpm, duration });
+
+      // 2) Dal feltöltése Supabase Storage-be
       const {
         data: songData,
         error: songError,
@@ -60,12 +153,13 @@ const UploadModal = () => {
           upsert: false,
         });
 
-      if (songError) {
+      if (songError || !songData) {
+        console.error(songError);
         setIsLoading(false);
         return toast.error("Sikertelen zenefeltöltés.");
       }
 
-      // Képfeltöltés
+      // 3) Kép feltöltése Supabase Storage-be
       const {
         data: imageData,
         error: imageError,
@@ -76,32 +170,38 @@ const UploadModal = () => {
           upsert: false,
         });
 
-      if (imageError) {
+      if (imageError || !imageData) {
+        console.error(imageError);
         setIsLoading(false);
         return toast.error("Sikertelen képfeltöltés.");
       }
-      // Supabase types trükközése miatt itt any-t használunk
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+      // 4) Sor beszúrása a songs táblába – BPM + duration mezőkkel
+      // Itt castoljuk any-re, hogy ne "never"-ezzen a Supabase típus
       const { error: supabaseError } = await (supabaseClient as any)
         .from("songs")
         .insert({
           user_id: user.id,
-          title: values.title,
-          author: values.author,
-          image_path: imageData.path,
-          song_path: songData.path,
-        } as any);
+          title: values.title as string,
+          author: values.author as string,
+          image_path: imageData.path as string,
+          song_path: songData.path as string,
+          bpm, // offline számolt BPM
+          duration, // offline számolt hossz (mp)
+        });
 
       if (supabaseError) {
+        console.error(supabaseError);
         setIsLoading(false);
-        return toast.error(supabaseError.message);
+        return toast.error("Hiba történt a dal mentésekor.");
       }
 
-      router.refresh();
       toast.success("A dal feltöltve!");
+      router.refresh();
       reset();
       uploadModal.onClose();
-    } catch (_error) {
+    } catch (error) {
+      console.error(error);
       toast.error("Valami félrement.");
     } finally {
       setIsLoading(false);
@@ -111,7 +211,7 @@ const UploadModal = () => {
   return (
     <Modal
       title="Dalfeltöltés"
-      description="Tölts fel egy dalt!"
+      description=""
       isOpen={uploadModal.isOpen}
       onChange={onChange}
     >
@@ -131,6 +231,7 @@ const UploadModal = () => {
           {...register("author", { required: true })}
           placeholder="Dalszerző"
         />
+
         <div>
           <div className="pb-1">Válassz egy dalt</div>
           <Input
@@ -152,6 +253,7 @@ const UploadModal = () => {
             {...register("image", { required: true })}
           />
         </div>
+
         <Button disabled={isLoading} type="submit">
           Küldés
         </Button>
