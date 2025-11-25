@@ -30,12 +30,12 @@ const SongItem: React.FC<SongItemProps> = ({ data, onClick }) => {
     if (!data.id) return;
 
     const dt = event.dataTransfer;
-    if (!dt) return; // TS: dataTransfer lehet null, itt kiszűrjük
+    if (!dt) return;
 
     setIsDragging(true);
     dt.effectAllowed = "move";
     dt.setData("text/song-id", data.id);
-    dt.setData("text/plain", data.id); // fallback
+    dt.setData("text/plain", data.id);
   };
 
   const handleDragEnd = () => {

@@ -3,8 +3,6 @@
 import { useRouter } from "next/navigation";
 import { twMerge } from "tailwind-merge";
 import { RxCaretLeft, RxCaretRight } from "react-icons/rx";
-import { HiHome } from "react-icons/hi";
-import { BiSearch } from "react-icons/bi";
 import { FaUserAlt } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 
@@ -210,6 +208,7 @@ const Header: React.FC<HeaderProps> = ({ children, className }) => {
                 bg-clip-text
                 text-transparent
                 drop-shadow-[0_0_18px_rgba(0,0,0,0.45)]
+                tracking-wide
               "
             >
               Petify
@@ -221,7 +220,7 @@ const Header: React.FC<HeaderProps> = ({ children, className }) => {
                 md:text-base
                 font-medium
                 text-black/85
-                tracking-wide
+                tracking-wider
                 uppercase
               "
             >
