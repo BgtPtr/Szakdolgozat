@@ -98,7 +98,6 @@ const UploadModal = () => {
       }
 
       router.refresh();
-      setIsLoading(false);
       toast.success("A dal feltöltve!");
       reset();
       uploadModal.onClose();
