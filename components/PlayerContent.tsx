@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  AiFillStepBackward,
-  AiFillStepForward,
-} from "react-icons/ai";
+import { AiFillStepBackward, AiFillStepForward } from "react-icons/ai";
 import { FaPlay, FaPause } from "react-icons/fa";
 import { HiSpeakerXMark, HiSpeakerWave } from "react-icons/hi2";
 import useSound from "use-sound";
@@ -148,13 +145,24 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
   const PlayIcon = isPlaying ? FaPause : FaPlay;
   const VolumeIcon = volume === 0 ? HiSpeakerXMark : HiSpeakerWave;
 
+  // 🔹 Itt számoljuk ki a BPM feliratot
+  const bpmLabel =
+    typeof song?.bpm === "number" && song.bpm > 0
+      ? `${song.bpm} bpm`
+      : "-- bpm";
+
   return (
     <div className="flex h-full items-center justify-between px-30 gap-x-4">
-      {/* Bal oldal: cím / előadó */}
-      <div className="flex items-center gap-x-20 w-[30%] min-w-[120px]">
+      {/* Bal oldal: borító / cím / BPM / like */}
+      <div className="flex items-center gap-x-4 w-[30%] min-w-[120px]">
         <MediaItem data={song} />
+
+        {/* BPM felirat – pontosan a track info és a szív közé téve */}
+        <span className="text-xs text-neutral-400 whitespace-nowrap">
+          {bpmLabel}
+        </span>
+
         <LikeButton songId={song.id} />
-        <div className="flex flex-col"></div>
       </div>
 
       {/* Közép: vezérlők + progress bar */}
@@ -170,7 +178,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
 
           <button
             onClick={handlePlayPause}
-              className={`
+            className="
               flex items-center justify-center
               rounded-full
               bg-[#d6d31a]
@@ -180,7 +188,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
               transition-transform
               duration-150
               shadow-[0_0_14px_rgba(214,211,26,0.75)]
-            `}
+            "
           >
             <PlayIcon size={26} />
           </button>
