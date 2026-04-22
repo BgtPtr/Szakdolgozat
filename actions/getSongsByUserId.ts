@@ -11,12 +11,10 @@ const getSongsByUserId = async (): Promise<Song[]> => {
     error: userError,
   } = await supabase.auth.getUser();
 
-  // Vendég felhasználónál ez normális állapot, ne logold hibának
   if (!user) {
     return [];
   }
 
-  // Csak a valódi, nem auth-hiány jellegű hibát logold
   if (userError && userError.message !== "Auth session missing!") {
     console.error("getSongsByUserId user error:", userError.message);
     return [];
