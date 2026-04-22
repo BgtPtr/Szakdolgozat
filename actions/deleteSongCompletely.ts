@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
-import { supabaseAdmin } from "@/utils/supabase/admin";
+import { getSupabaseAdmin } from "@/utils/supabase/admin";
 
 type SongForDelete = {
     id: string;
@@ -13,6 +13,7 @@ type SongForDelete = {
 
 export async function deleteSongCompletely(songId: string) {
     const supabase = await createServerSupabaseClient();
+    const supabaseAdmin = getSupabaseAdmin();
 
     const {
         data: { user },
