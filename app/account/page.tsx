@@ -1,86 +1,70 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 
 import Header from "@/components/Header";
-import { useUser } from "@/hooks/useUser";
-import useAuthModal from "@/hooks/useAuthModal";
+import Box from "@/components/Box";
+import getSongsByUserId from "@/actions/getSongsByUserId";
+import { createServerSupabaseClient } from "@/utils/supabase/server";
+import PageContent from "@/app/(site)/components/PageContent";
 
-const AccountPage = () => {
-  const { user, isLoading } = useUser();
-  const router = useRouter();
+const AccountPage = async () => {
+  const supabase = await createServerSupabaseClient();
 
-  // ✅ CSAK a szükséges action-t kérjük ki (stabilabb)
-  const openSignIn = useAuthModal((state) => state.openSignIn);
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  const [budapestTime, setBudapestTime] = useState<string>("");
-
-  // 1) Auth guard
-  useEffect(() => {
-    if (isLoading) return;
-
-    if (!user) {
-      openSignIn();
-      router.replace("/");
-    }
-  }, [
-    isLoading,
-    user, // ⚠️ OK maradhat, de lásd lent
-  ]);
-
-  // 2) Idő frissítés
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const formatted = now.toLocaleTimeString("hu-HU", {
-        timeZone: "Europe/Budapest",
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-      setBudapestTime(formatted);
-    };
-
-    updateTime();
-    const id = setInterval(updateTime, 1000);
-
-    return () => clearInterval(id);
-  }, []);
-
-  if (isLoading || !user) {
-    return null;
+  if (error || !user) {
+    redirect("/");
   }
+
+  const userSongs = await getSongsByUserId();
 
   return (
     <div className="bg-neutral-900 rounded-lg h-full w-full overflow-hidden overflow-y-auto">
       <Header>
         <div className="px-6 py-6">
-          <h1 className="text-white text-3xl sm:text-4xl lg:text-5xl font-bold">
-            Fiókom
-          </h1>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <h1 className="text-white text-3xl sm:text-4xl lg:text-5xl font-bold">
+              Fiókom
+            </h1>
+
+            <div className="rounded-md bg-neutral-900/40 px-5 py-4 md:min-w-[360px]">
+              <p className="text-neutral-400 text-sm mb-1">
+                Bejelentkezve ezzel az e-mail címmel:
+              </p>
+
+              <p className="text-white text-lg font-semibold break-all">
+                {user.email}
+              </p>
+            </div>
+          </div>
         </div>
       </Header>
 
-      <div className="px-6 pb-6">
-        <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700 max-w-xl">
-          <p className="text-neutral-400 text-sm mb-2">
-            Bejelentkezve ezzel az e-mail címmel:
-          </p>
-          <p className="text-white text-lg font-semibold">
-            {user.email}
-          </p>
+      <div className="px-6 pb-10 flex flex-col gap-y-6">
+        <Box className="p-6">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-white text-xl font-semibold">
+                Saját feltöltéseim
+              </h2>
+              <p className="text-neutral-400 text-sm mt-1">
+                Itt kezelheted a saját feltöltött zenéidet.
+              </p>
+            </div>
 
-          <div className="mt-4">
-            <p className="text-neutral-400 text-sm">
-              Időzóna: Budapest
-            </p>
-            <p className="text-white text-lg font-mono">
-              {budapestTime || "—"}
-            </p>
+            <div className="text-sm text-neutral-400">
+              Összesen:{" "}
+              <span className="text-white font-semibold">
+                {userSongs.length}
+              </span>{" "}
+              db
+            </div>
           </div>
-        </div>
+
+          <PageContent songs={userSongs} />
+        </Box>
       </div>
     </div>
   );

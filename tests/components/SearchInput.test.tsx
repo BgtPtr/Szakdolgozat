@@ -1,25 +1,43 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import SearchInput from '@/components/SearchInput';
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import SearchInput from "@/components/SearchInput";
 
-const push = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+const replace = vi.fn();
 
-describe('SearchInput', () => {
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({
+        replace,
+        push: vi.fn(),
+        refresh: vi.fn(),
+    }),
+}));
+
+describe("SearchInput", () => {
     beforeEach(() => {
-        push.mockReset();
+        replace.mockReset();
         vi.useFakeTimers();
     });
-    afterEach(() => vi.useRealTimers());
 
-    it('pushes the default empty search on mount', () => {
-        render(<SearchInput />);
-        expect(push).toHaveBeenCalledWith('/search?title=');
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
-    it('pushes the debounced search value after typing', () => {
+    it("replaces the default empty search on mount", () => {
         render(<SearchInput />);
-        fireEvent.change(screen.getByPlaceholderText('Mit hallgatnál?'), { target: { value: 'metallica' } });
-        act(() => vi.advanceTimersByTime(200));
-        expect(push).toHaveBeenLastCalledWith('/search?title=metallica');
+
+        expect(replace).toHaveBeenCalledWith("/search");
+    });
+
+    it("replaces the debounced search value after typing", () => {
+        render(<SearchInput />);
+
+        fireEvent.change(screen.getByPlaceholderText("Mit hallgatnál?"), {
+            target: { value: "metallica" },
+        });
+
+        act(() => {
+            vi.advanceTimersByTime(200);
+        });
+
+        expect(replace).toHaveBeenLastCalledWith("/search?title=metallica");
     });
 });

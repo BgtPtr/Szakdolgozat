@@ -24,7 +24,7 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
   if (songs.length === 0) {
     return (
       <div className="mt-4 text-neutral-400 text-sm">
-        Még nincs elérhető zeneszám.
+        Még nincs feltöltött zeneszám.
       </div>
     );
   }
@@ -105,20 +105,10 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
       {viewMode === "list" && (
         <div className="flex flex-col gap-y-1">
           {songs.map((song) => {
-            const rawDuration = (song as any).duration as
-              | number
-              | undefined
-              | null;
+            const rawDuration = song.duration ?? undefined;
+            const formattedDuration = formatTime(rawDuration);
 
-            const formattedDuration = formatTime(
-              typeof rawDuration === "number" ? rawDuration : undefined
-            );
-
-            const rawBpm = (song as any).bpm as
-              | number
-              | undefined
-              | null;
-
+            const rawBpm = song.bpm ?? undefined;
             const bpmLabel =
               typeof rawBpm === "number" && !Number.isNaN(rawBpm) && rawBpm > 0
                 ? `${Math.round(rawBpm)} bpm`
