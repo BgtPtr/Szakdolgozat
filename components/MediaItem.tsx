@@ -17,13 +17,13 @@ const MediaItem: React.FC<MediaItemProps> = ({
 
   const handleClick = () => {
     if (onClick) {
-        return onClick(data.id);
+      return onClick(data.id);
     }
   }
 
   return (
     <div onClick={handleClick}
-    className="
+      className="
       flex
       items-center
       gap-x-3
@@ -34,20 +34,21 @@ const MediaItem: React.FC<MediaItemProps> = ({
       rounded-md
       "
     >
-    <div className="
+      <div className="
     relative
     rounded-md
     min-h-[48px]
     min-w-[48px]
     overflow-hidden
     "
-    >
-      <Image
-      fill
-      src={imageUrl || '/images/liked.png'}
-      alt="Media Item"
-      className="object-cover"
-      />
+      >
+        <Image
+          fill
+          sizes="48px"
+          src={imageUrl || '/images/liked_.png'}
+          alt="Media Item"
+          className="object-cover"
+        />
       </div>
       <div className="
       flex

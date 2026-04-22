@@ -1,26 +1,38 @@
 "use client";
 
-import { useState, type DragEvent } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 import Image from "next/image";
 
 import type { Song } from "@/types";
 import LikeButton from "@/components/LikeButton";
+import DeleteSongButton from "@/components/DeleteSongButton";
 import useLoadImage from "@/hooks/useLoadImage";
 import usePlayer from "@/hooks/usePlayer";
 
 interface SongItemProps {
   data: Song;
   onClick: (id: string) => void;
+  showDelete?: boolean;
 }
 
-const SongItem: React.FC<SongItemProps> = ({ data, onClick }) => {
+const FALLBACK_IMAGE = "/images/liked_.png";
+
+const SongItem: React.FC<SongItemProps> = ({
+  data,
+  onClick,
+  showDelete = false,
+}) => {
   const imageUrl = useLoadImage(data);
   const player = usePlayer();
 
   const [isDragging, setIsDragging] = useState(false);
+  const [imgSrc, setImgSrc] = useState(FALLBACK_IMAGE);
+
+  useEffect(() => {
+    setImgSrc(imageUrl || FALLBACK_IMAGE);
+  }, [imageUrl]);
 
   const isActive = player.activeId === data.id;
-  const safeImage = imageUrl ?? "/images/liked.png";
 
   const handleCardClick = () => {
     onClick(data.id);
@@ -65,17 +77,17 @@ const SongItem: React.FC<SongItemProps> = ({ data, onClick }) => {
         ${isDragging ? "scale-[0.97] opacity-90" : ""}
       `}
     >
-      {/* Borító + like buborék */}
       <div className="relative aspect-square w-full overflow-hidden rounded-md">
         <Image
           className="object-cover"
-          src={safeImage}
+          src={imgSrc}
           fill
+          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 220px"
           alt={data.title ?? "Zeneszám borítója"}
+          onError={() => setImgSrc(FALLBACK_IMAGE)}
         />
 
-        {/* Like gomb – bal felső sarok, saját kerek háttérrel */}
-        <div className="absolute left-2 top-2">
+        <div className="absolute left-2 top-2 z-20">
           <div
             className="
               flex
@@ -92,9 +104,14 @@ const SongItem: React.FC<SongItemProps> = ({ data, onClick }) => {
             <LikeButton songId={data.id} />
           </div>
         </div>
+
+        {showDelete && (
+          <div className="absolute right-2 top-2 z-20">
+            <DeleteSongButton songId={data.id} />
+          </div>
+        )}
       </div>
 
-      {/* Cím + előadó a csempe alatt */}
       <div className="mt-3 flex w-full flex-col">
         <p className="truncate text-sm font-semibold text-white">
           {data.title ?? "Ismeretlen dal"}

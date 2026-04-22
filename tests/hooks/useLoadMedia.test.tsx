@@ -20,7 +20,7 @@ describe('media loading hooks', () => {
 
     it('returns the fallback image for a missing song', () => {
         const { result } = renderHook(() => useLoadImage(null));
-        expect(result.current).toBe('/images/liked.png');
+        expect(result.current).toBe('/images/liked_.png');
     });
 
     it('returns the public image url for a valid song', () => {

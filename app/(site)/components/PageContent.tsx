@@ -5,7 +5,9 @@ import { MdViewModule, MdViewList } from "react-icons/md";
 
 import SongItem from "@/components/SongItem";
 import LikeButton from "@/components/LikeButton";
+import DeleteSongButton from "@/components/DeleteSongButton";
 import useOnPlay from "@/hooks/useOnPlay";
+import { useUser } from "@/hooks/useUser";
 import type { Song } from "@/types";
 
 interface PageContentProps {
@@ -17,6 +19,7 @@ type ViewMode = "grid" | "list";
 const PageContent: React.FC<PageContentProps> = ({ songs }) => {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const onPlay = useOnPlay(songs);
+  const { user } = useUser();
 
   if (songs.length === 0) {
     return (
@@ -26,7 +29,6 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
     );
   }
 
-  // Másodpercek -> "m:ss" formátum
   const formatTime = (seconds: number | undefined) => {
     if (!seconds || Number.isNaN(seconds) || seconds <= 0) return "--:--";
     const total = Math.floor(seconds);
@@ -37,7 +39,6 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
 
   return (
     <div className="mt-4 flex flex-col gap-y-4">
-      {/* Nézetváltó */}
       <div className="flex items-center justify-end gap-x-2">
         <button
           type="button"
@@ -49,15 +50,15 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
             border
             text-xs
             transition
-            ${
-              viewMode === "grid"
-                ? "bg-[#d6d31a] border-[#d6d31a] text-black shadow-[0_0_12px_rgba(214,211,26,0.6)]"
-                : "bg-transparent border-neutral-600 text-neutral-300 hover:border-[#d6d31a] hover:text-[#d6d31a]"
+            ${viewMode === "grid"
+              ? "bg-[#d6d31a] border-[#d6d31a] text-black shadow-[0_0_12px_rgba(214,211,26,0.6)]"
+              : "bg-transparent border-neutral-600 text-neutral-300 hover:border-[#d6d31a] hover:text-[#d6d31a]"
             }
           `}
         >
           <MdViewModule size={16} />
         </button>
+
         <button
           type="button"
           onClick={() => setViewMode("list")}
@@ -68,10 +69,9 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
             border
             text-xs
             transition
-            ${
-              viewMode === "list"
-                ? "bg-[#d6d31a] border-[#d6d31a] text-black shadow-[0_0_12px_rgba(214,211,26,0.6)]"
-                : "bg-transparent border-neutral-600 text-neutral-300 hover:border-[#d6d31a] hover:text-[#d6d31a]"
+            ${viewMode === "list"
+              ? "bg-[#d6d31a] border-[#d6d31a] text-black shadow-[0_0_12px_rgba(214,211,26,0.6)]"
+              : "bg-transparent border-neutral-600 text-neutral-300 hover:border-[#d6d31a] hover:text-[#d6d31a]"
             }
           `}
         >
@@ -79,7 +79,6 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
         </button>
       </div>
 
-      {/* GRID NÉZET – a régi csempés nézet */}
       {viewMode === "grid" && (
         <div
           className="
@@ -97,33 +96,35 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
               key={song.id}
               data={song}
               onClick={(id: string) => onPlay(id)}
+              showDelete={song.user_id === user?.id}
             />
           ))}
         </div>
       )}
 
-      {/* LISTA NÉZET – itt jelenik meg BPM + hossz */}
       {viewMode === "list" && (
         <div className="flex flex-col gap-y-1">
           {songs.map((song) => {
-            // Hossz (másodpercben) – adatbázisból, pl. "duration" mező
             const rawDuration = (song as any).duration as
               | number
               | undefined
               | null;
+
             const formattedDuration = formatTime(
               typeof rawDuration === "number" ? rawDuration : undefined
             );
 
-            // BPM – adatbázis "bpm" mezőből
             const rawBpm = (song as any).bpm as
               | number
               | undefined
               | null;
+
             const bpmLabel =
               typeof rawBpm === "number" && !Number.isNaN(rawBpm) && rawBpm > 0
                 ? `${Math.round(rawBpm)} bpm`
                 : "-- bpm";
+
+            const canDelete = song.user_id === user?.id;
 
             return (
               <div
@@ -144,7 +145,6 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
                   transition
                 "
               >
-                {/* Dalcím + előadó + BPM */}
                 <div className="flex flex-col flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">
                     {song.title ?? "Ismeretlen dal"}
@@ -157,15 +157,25 @@ const PageContent: React.FC<PageContentProps> = ({ songs }) => {
                   </p>
                 </div>
 
-                {/* hossz (perc:másodperc) */}
                 <div className="w-14 text-right text-xs text-neutral-300">
                   {formattedDuration}
                 </div>
 
-                {/* Like a jobb oldalon */}
                 <div className="ml-3">
                   <LikeButton songId={song.id} />
                 </div>
+
+                {canDelete && (
+                  <div
+                    className="ml-2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  >
+                    <DeleteSongButton songId={song.id} />
+                  </div>
+                )}
               </div>
             );
           })}

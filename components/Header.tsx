@@ -27,14 +27,12 @@ const Header: React.FC<HeaderProps> = ({ children, className }) => {
   const handleLogout = async () => {
     const { error } = await supabaseClient.auth.signOut();
 
-    // Player leállítása / eltüntetése
-    player.reset();
-    // Oldal frissítés (UI, session, stb.)
-    router.refresh();
-
     if (error) {
       toast.error(error.message);
     }
+    player.reset();
+    router.replace("/");
+    router.refresh();
   };
 
   const handleNavigateBack = () => {
@@ -115,6 +113,7 @@ const Header: React.FC<HeaderProps> = ({ children, className }) => {
                 Kijelentkezés
               </Button>
               <button
+                onClick={() => router.push("/account")}
                 className="
                   rounded-full
                   bg-black/40

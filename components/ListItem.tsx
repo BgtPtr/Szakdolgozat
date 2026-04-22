@@ -1,10 +1,10 @@
 "use client";
 
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {FaPlay} from "react-icons/fa";
+import { FaPlay } from "react-icons/fa";
 
-interface ListItemPops{
+interface ListItemPops {
     image: string;
     name: string;
     href: string;
@@ -17,7 +17,7 @@ const ListItem: React.FC<ListItemPops> = ({
 }) => {
     const router = useRouter();
 
-    const onClick=() => {
+    const onClick = () => {
         router.push(href);
     }
 
@@ -45,9 +45,10 @@ const ListItem: React.FC<ListItemPops> = ({
                 min-w-[64px]
             "
             >
-                <Image 
+                <Image
                     className="object-cover"
                     fill
+                    sizes="64px"
                     src={image}
                     alt="Image"
                 />
@@ -71,8 +72,8 @@ const ListItem: React.FC<ListItemPops> = ({
                     group-hover:opacity-100
                     hover:scale-110
                     "
-                >
-                <FaPlay className="text-black"/>
+            >
+                <FaPlay className="text-black" />
             </div>
         </button>
     );
