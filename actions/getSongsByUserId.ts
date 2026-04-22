@@ -7,25 +7,25 @@ const getSongsByUserId = async (): Promise<Song[]> => {
   const supabase = await createServerSupabaseClient();
 
   const {
-    data: sessionData,
-    error: sessionError,
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (sessionError) {
-    console.error("getSongsByUserId session error:", sessionError.message);
+  // Vendég felhasználónál ez normális állapot, ne logold hibának
+  if (!user) {
     return [];
   }
 
-  const userId = sessionData?.session?.user?.id;
-
-  if (!userId) {
+  // Csak a valódi, nem auth-hiány jellegű hibát logold
+  if (userError && userError.message !== "Auth session missing!") {
+    console.error("getSongsByUserId user error:", userError.message);
     return [];
   }
 
   const { data, error } = await supabase
     .from("songs")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) {

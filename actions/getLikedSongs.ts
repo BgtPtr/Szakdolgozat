@@ -1,42 +1,31 @@
-"use server";
-
-import type { Song } from "@/types";
-import type { Database } from "@/types_db";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
-
-type LikedSongRow = Database["public"]["Tables"]["liked_songs"]["Row"] & {
-  songs: Database["public"]["Tables"]["songs"]["Row"];
-};
+import { Song } from "@/types";
 
 const getLikedSongs = async (): Promise<Song[]> => {
   const supabase = await createServerSupabaseClient();
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (!session?.user) {
+  if (userError || !user) {
     return [];
   }
 
-  const { data, error } = await supabase
+  const { data, error: likedError } = await supabase
     .from("liked_songs")
-    .select("*, songs(*)")
-    .eq("user_id", session.user.id)
+    .select("songs(*)")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.log(error);
+  if (likedError || !data) {
     return [];
   }
 
-  if (!data) {
-    return [];
-  }
-
-  return (data as LikedSongRow[]).map((item) => ({
-    ...(item.songs as Song),
-  }));
+  return data
+    .map((item: any) => item.songs)
+    .filter(Boolean) as Song[];
 };
 
 export default getLikedSongs;

@@ -8,11 +8,13 @@ import toast from "react-hot-toast";
 interface DeleteSongButtonProps {
     songId: string;
     className?: string;
+    onDeleted?: (songId: string) => void;
 }
 
 const DeleteSongButton: React.FC<DeleteSongButtonProps> = ({
     songId,
     className = "",
+    onDeleted,
 }) => {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
@@ -42,6 +44,7 @@ const DeleteSongButton: React.FC<DeleteSongButtonProps> = ({
                 throw new Error(result?.error || "Sikertelen törlés.");
             }
 
+            onDeleted?.(songId);
             toast.success("A dal sikeresen törölve.");
             router.refresh();
         } catch (error) {
@@ -58,22 +61,23 @@ const DeleteSongButton: React.FC<DeleteSongButtonProps> = ({
             type="button"
             onClick={handleDelete}
             disabled={isLoading}
+            aria-label="Dal törlése"
             className={`
-                flex
-                h-9
-                w-9
-                items-center
-                justify-center
-                rounded-full
-                bg-red-600/90
-                text-white
-                shadow-md
-                transition
-                hover:bg-red-700
-                disabled:cursor-not-allowed
-                disabled:opacity-60
-                ${className}
-        `}
+        flex
+        h-9
+        w-9
+        items-center
+        justify-center
+        rounded-full
+        bg-red-600/90
+        text-white
+        shadow-md
+        transition
+        hover:bg-red-700
+        disabled:cursor-not-allowed
+        disabled:opacity-60
+        ${className}
+      `}
             title="Dal törlése"
         >
             <FiTrash2 size={16} />

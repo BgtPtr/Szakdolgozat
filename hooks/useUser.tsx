@@ -6,10 +6,9 @@ import {
   createContext,
   useContext,
 } from "react";
-import type { User, Session, SupabaseClient } from "@supabase/supabase-js";
+import type { User, Session } from "@supabase/supabase-js";
 import { Subscription, UserDetails } from "@/types";
 import { useSupabase } from "@/providers/SupabaseProvider";
-import { Database } from "@/types_db";
 
 type UserContextType = {
   accessToken: string | null;
@@ -39,6 +38,7 @@ export const MyUserContextProvider = (props: Props) => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
 
   const getUserDetails = () => supabase.from("users").select("*").single();
+
   const getSubscription = () =>
     supabase
       .from("subscriptions")
@@ -46,13 +46,45 @@ export const MyUserContextProvider = (props: Props) => {
       .in("status", ["trialing", "active"])
       .single();
 
-  // 1) Session + user figyelése
   useEffect(() => {
     let ignore = false;
 
-    const getInitialSession = async () => {
+    const hydrateAuthenticatedUser = async (session: Session | null) => {
       setIsLoadingUser(true);
 
+      if (!session) {
+        if (!ignore) {
+          setUser(null);
+          setAccessToken(null);
+          setUserDetails(null);
+          setSubscription(null);
+          setIsLoadingUser(false);
+        }
+        return;
+      }
+
+      const {
+        data: { user: authenticatedUser },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (ignore) return;
+
+      if (userError) {
+        console.error("getUser error:", userError.message);
+        setUser(null);
+        setAccessToken(null);
+        setUserDetails(null);
+        setSubscription(null);
+      } else {
+        setUser(authenticatedUser ?? null);
+        setAccessToken(session.access_token ?? null);
+      }
+
+      setIsLoadingUser(false);
+    };
+
+    const getInitialUser = async () => {
       const { data, error } = await supabase.auth.getSession();
 
       if (ignore) return;
@@ -61,27 +93,21 @@ export const MyUserContextProvider = (props: Props) => {
         console.error("getSession error:", error.message);
         setUser(null);
         setAccessToken(null);
-      } else {
-        setUser(data.session?.user ?? null);
-        setAccessToken(data.session?.access_token ?? null);
+        setUserDetails(null);
+        setSubscription(null);
+        setIsLoadingUser(false);
+        return;
       }
 
-      setIsLoadingUser(false);
+      await hydrateAuthenticatedUser(data.session ?? null);
     };
 
-    getInitialSession();
+    getInitialUser();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event: unknown, session: Session | null) => {
+      async (_event, session) => {
         if (ignore) return;
-
-        setUser(session?.user ?? null);
-        setAccessToken(session?.access_token ?? null);
-
-        if (!session) {
-          setUserDetails(null);
-          setSubscription(null);
-        }
+        await hydrateAuthenticatedUser(session);
       }
     );
 
@@ -91,7 +117,6 @@ export const MyUserContextProvider = (props: Props) => {
     };
   }, [supabase]);
 
-  // 2) UserDetails + Subscription betöltése
   useEffect(() => {
     if (user && !isLoadingData && !userDetails && !subscription) {
       setIsLoadingData(true);
@@ -142,8 +167,10 @@ export const MyUserContextProvider = (props: Props) => {
 
 export const useUser = () => {
   const context = useContext(UserContext);
+
   if (context === undefined) {
     throw new Error("useUser must be used within a MyUserContextProvider");
   }
+
   return context;
 };
