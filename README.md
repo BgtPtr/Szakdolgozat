@@ -21,7 +21,7 @@ A Petify egy Next.js és Supabase alapú zenelejátszó webalkalmazás.
 ## Telepítés
 
 ```bash
-git clone <https://github.com/BgtPtr/Szakdolgozat.git>
+git clone https://github.com/BgtPtr/Szakdolgozat.git
 cd petify
 npm install
 ```
