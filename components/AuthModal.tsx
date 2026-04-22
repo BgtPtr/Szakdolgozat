@@ -14,20 +14,33 @@ const AuthModal = () => {
   const supabaseClient = useSupabase();
   const router = useRouter();
   const { user } = useUser();
-  const { onClose, isOpen, view} = useAuthModal();
+  const { onClose, isOpen, view } = useAuthModal();
 
+  /*
   useEffect(() => {
     if (user && isOpen) {
       router.refresh();
       onClose();
     }
   }, [user, isOpen, router, onClose]);
+  */
+
+  useEffect(() => {
+    if (!user || !isOpen) return;
+
+    onClose();
+
+    // opcionális – csak ha tényleg kell
+    router.refresh();
+  }, [user?.id, isOpen]);
 
   const onChange = (open: boolean) => {
     if (!open) {
       onClose();
     }
   };
+
+
 
   // TS generikus ütközés miatt itt lazítunk a típuson
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

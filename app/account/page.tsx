@@ -9,20 +9,27 @@ import useAuthModal from "@/hooks/useAuthModal";
 
 const AccountPage = () => {
   const { user, isLoading } = useUser();
-  const authModal = useAuthModal();
   const router = useRouter();
+
+  // ✅ CSAK a szükséges action-t kérjük ki (stabilabb)
+  const openSignIn = useAuthModal((state) => state.openSignIn);
 
   const [budapestTime, setBudapestTime] = useState<string>("");
 
-  // 1) Ha nem vagy bejelentkezve: login modal + vissza Home-ra
+  // 1) Auth guard
   useEffect(() => {
-    if (!isLoading && !user) {
-      authModal.openSignIn();
+    if (isLoading) return;
+
+    if (!user) {
+      openSignIn();
       router.replace("/");
     }
-  }, [isLoading, user, router, authModal]);
+  }, [
+    isLoading,
+    user, // ⚠️ OK maradhat, de lásd lent
+  ]);
 
-  // 2) Budapest-i idő másodperces frissítéssel
+  // 2) Idő frissítés
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -42,22 +49,12 @@ const AccountPage = () => {
     return () => clearInterval(id);
   }, []);
 
-  // Amíg tölt a user, vagy még nincs user (de a guard majd eldönti), addig ne villogjon a UI
   if (isLoading || !user) {
     return null;
   }
 
   return (
-    <div
-      className="
-        bg-neutral-900
-        rounded-lg
-        h-full
-        w-full
-        overflow-hidden
-        overflow-y-auto
-      "
-    >
+    <div className="bg-neutral-900 rounded-lg h-full w-full overflow-hidden overflow-y-auto">
       <Header>
         <div className="px-6 py-6">
           <h1 className="text-white text-3xl sm:text-4xl lg:text-5xl font-bold">
@@ -67,16 +64,7 @@ const AccountPage = () => {
       </Header>
 
       <div className="px-6 pb-6">
-        <div
-          className="
-            bg-neutral-800
-            rounded-lg
-            p-6
-            border
-            border-neutral-700
-            max-w-xl
-          "
-        >
+        <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700 max-w-xl">
           <p className="text-neutral-400 text-sm mb-2">
             Bejelentkezve ezzel az e-mail címmel:
           </p>

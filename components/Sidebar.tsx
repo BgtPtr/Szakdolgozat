@@ -12,6 +12,7 @@ import Library from "./Library";
 
 import Player from "./Player";
 import usePlayer from "@/hooks/usePlayer";
+import { useUser } from "@/hooks/useUser";
 import type { Song } from "@/types";
 
 interface SidebarProps {
@@ -22,9 +23,10 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ children, songs }) => {
   const pathname = usePathname();
   const player = usePlayer();
+  const { user } = useUser();
+  const isGuest = !user;
 
-  // 🔹 Resizable sidebar állapot
-  const [sidebarWidth, setSidebarWidth] = useState(300); // px, régi 300-as szélesség
+  const [sidebarWidth, setSidebarWidth] = useState(300);
   const [isResizing, setIsResizing] = useState(false);
 
   const routes = useMemo(
@@ -53,11 +55,11 @@ const Sidebar: React.FC<SidebarProps> = ({ children, songs }) => {
   };
 
   useEffect(() => {
-    if (!isResizing) return;
+    if (!isResizing || isGuest) return;
 
     const handleMouseMove = (event: MouseEvent) => {
-      const min = 220; // minimum szélesség
-      const max = 420; // maximum szélesség
+      const min = 220;
+      const max = 420;
       const newWidth = Math.min(Math.max(event.clientX, min), max);
       setSidebarWidth(newWidth);
     };
@@ -73,71 +75,70 @@ const Sidebar: React.FC<SidebarProps> = ({ children, songs }) => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isResizing]);
+  }, [isResizing, isGuest]);
 
   return (
     <div className="h-full flex">
-      {/* BAL OLDALI SIDEBAR */}
-      <div
-        className={twMerge(
-          `
-          hidden
-          md:flex
-          flex-col
-          gap-y-2
-          bg-black
-          h-full
-          p-2
-        `,
-          player.activeId && "h-[calc(100%-80px)]"
-        )}
-        style={{ width: sidebarWidth }}
-      >
-        <Box>
-          <div className="flex flex-col gap-y-4 px-5 py-4">
-            {routes.map((item) => (
-              <SidebarItem key={item.label} {...item} />
-            ))}
+      {!isGuest && (
+        <>
+          <div
+            className={twMerge(
+              `
+                hidden
+                md:flex
+                flex-col
+                gap-y-2
+                bg-black
+                h-full
+                p-2
+              `,
+              player.activeId && "h-[calc(100%-80px)]"
+            )}
+            style={{ width: sidebarWidth }}
+          >
+            <Box>
+              <div className="flex flex-col gap-y-4 px-5 py-4">
+                {routes.map((item) => (
+                  <SidebarItem key={item.label} {...item} />
+                ))}
+              </div>
+            </Box>
+
+            <Box className="overflow-y-auto h-full">
+              <Library songs={songs} />
+            </Box>
           </div>
-        </Box>
 
-        {/* KÖNYVTÁR */}
-        <Box className="overflow-y-auto h-full">
-          <Library songs={songs} />
-        </Box>
-      </div>
+          <div
+            onMouseDown={handleResizeMouseDown}
+            className="
+              hidden
+              md:block
+              w-[3px]
+              cursor-col-resize
+              bg-neutral-900
+              hover:bg-[#d6d31a]
+              transition-colors
+            "
+          />
+        </>
+      )}
 
-      {/* FOGANTYÚ – ezzel lehet húzni a Sidebar szélességét */}
-      <div
-        onMouseDown={handleResizeMouseDown}
-        className="
-          hidden
-          md:block
-          w-[3px]
-          cursor-col-resize
-          bg-neutral-900
-          hover:bg-[#d6d31a]
-          transition-colors
-        "
-      />
-
-      {/* FŐ TARTALOM */}
       <main
         className={twMerge(
           `
-          h-full
-          flex-1
-          overflow-y-auto
-          py-2
-        `,
-          player.activeId && "h-[calc(100%-80px)]"
+            h-full
+            flex-1
+            overflow-y-auto
+            py-2
+          `,
+          !isGuest && player.activeId && "h-[calc(100%-80px)]"
         )}
       >
         {children}
       </main>
 
-      {/* LEJÁTSZÓ SÁV ALUL */}
-      {player.activeId && (
+      {!isGuest && player.activeId && (
         <div className="fixed bottom-0 left-0 right-0 h-20 bg-black">
           <Player />
         </div>
