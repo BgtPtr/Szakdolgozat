@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SearchInput from "@/components/SearchInput";
 
 const replace = vi.fn();
@@ -24,7 +25,11 @@ describe("SearchInput", () => {
     it("replaces the default empty search on mount", () => {
         render(<SearchInput />);
 
-        expect(replace).toHaveBeenCalledWith("/search");
+        act(() => {
+            vi.advanceTimersByTime(200);
+        });
+
+        expect(replace).toHaveBeenLastCalledWith("/search");
     });
 
     it("replaces the debounced search value after typing", () => {
