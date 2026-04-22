@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 
-export interface Song{
+export interface Song {
   id: string;
   user_id: string;
   author: string;
@@ -11,7 +11,7 @@ export interface Song{
   duration?: number | null;
 }
 
-export interface UserDetails{
+export interface UserDetails {
   id: string;
   full_name?: string | null;
   first_name?: string | null;
@@ -64,3 +64,18 @@ export interface Subscription {
   trial_end?: string;
   prices?: Price;
 }
+
+export type PlaylistSong = {
+  playlist_id: string;
+  song_id: string;
+  created_at: string;
+  songs: Song | null;
+};
+
+export type Playlist = {
+  id: string;
+  created_at: string;
+  user_id: string;
+  name: string;
+  playlist_songs?: PlaylistSong[];
+};

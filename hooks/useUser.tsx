@@ -6,7 +6,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import type { Session, User } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 
 import { useSupabase } from "@/providers/SupabaseProvider";
 import type { Subscription, UserDetails } from "@/types";
@@ -35,82 +35,43 @@ export const MyUserContextProvider = ({ children }: Props) => {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
-  const getUserDetails = () => supabase.from("users").select("*").single();
-
-  const getSubscription = () =>
-    supabase
-      .from("subscriptions")
-      .select("*, prices(*, products(*))")
-      .in("status", ["trialing", "active"])
-      .single();
-
   useEffect(() => {
-    let ignore = false;
+    let mounted = true;
 
-    const syncAuthenticatedUser = async (session: Session | null) => {
-      setIsLoadingUser(true);
-
-      if (!session) {
-        if (!ignore) {
-          setAccessToken(null);
-          setUser(null);
-          setUserDetails(null);
-          setSubscription(null);
-          setIsLoadingUser(false);
-        }
-        return;
-      }
-
+    const applySession = async () => {
       const {
-        data: { user: authenticatedUser },
-        error: userError,
-      } = await supabase.auth.getUser();
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
 
-      if (ignore) return;
-
-      if (userError) {
-        console.error("getUser error:", userError.message);
-        setAccessToken(null);
-        setUser(null);
-        setUserDetails(null);
-        setSubscription(null);
-      } else {
-        setAccessToken(session.access_token ?? null);
-        setUser(authenticatedUser ?? null);
-      }
-
-      setIsLoadingUser(false);
-    };
-
-    const init = async () => {
-      const { data, error } = await supabase.auth.getSession();
-
-      if (ignore) return;
+      if (!mounted) return;
 
       if (error) {
         console.error("getSession error:", error.message);
         setAccessToken(null);
         setUser(null);
-        setUserDetails(null);
-        setSubscription(null);
         setIsLoadingUser(false);
         return;
       }
 
-      await syncAuthenticatedUser(data.session ?? null);
+      setAccessToken(session?.access_token ?? null);
+      setUser(session?.user ?? null);
+      setIsLoadingUser(false);
     };
 
-    init();
+    applySession();
 
     const {
       data: { subscription: authSubscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (ignore) return;
-      await syncAuthenticatedUser(session);
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setAccessToken(session?.access_token ?? null);
+      setUser(session?.user ?? null);
+      setIsLoadingUser(false);
     });
 
     return () => {
-      ignore = true;
+      mounted = false;
       authSubscription.unsubscribe();
     };
   }, [supabase]);
@@ -128,8 +89,13 @@ export const MyUserContextProvider = ({ children }: Props) => {
       setIsLoadingData(true);
 
       const [userDetailsResult, subscriptionResult] = await Promise.allSettled([
-        getUserDetails(),
-        getSubscription(),
+        supabase.from("users").select("*").eq("id", user.id).maybeSingle(),
+        supabase
+          .from("subscriptions")
+          .select("*, prices(*, products(*))")
+          .in("status", ["trialing", "active"])
+          .eq("user_id", user.id)
+          .maybeSingle(),
       ]);
 
       if (cancelled) return;

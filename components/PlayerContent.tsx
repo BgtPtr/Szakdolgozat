@@ -17,12 +17,15 @@ interface PlayerContentProps {
 }
 
 const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
-  const player = usePlayer();
+  const ids = usePlayer((state) => state.ids);
+  const activeId = usePlayer((state) => state.activeId);
+  const setId = usePlayer((state) => state.setId);
 
   const [volume, setVolume] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [detectedBpm, setDetectedBpm] = useState<number | null>(null);
 
   const [play, { pause, sound }] = useSound(songUrl, {
     volume,
@@ -35,6 +38,92 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
     },
     format: ["mp3"],
   });
+
+  useEffect(() => {
+    setDetectedBpm(
+      typeof song?.bpm === "number" && song.bpm > 0 ? song.bpm : null
+    );
+  }, [song?.id, song?.bpm]);
+
+  useEffect(() => {
+    if (typeof song?.bpm === "number" && song.bpm > 0) return;
+    if (!songUrl || typeof window === "undefined") return;
+
+    let cancelled = false;
+
+    const detectBpmFromSongUrl = async () => {
+      try {
+        const response = await fetch(songUrl);
+        if (!response.ok) {
+          throw new Error("A hangfájl nem tölthető be BPM elemzéshez.");
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const AudioCtx =
+          window.AudioContext ||
+          (window as typeof window & {
+            webkitAudioContext?: typeof AudioContext;
+          }).webkitAudioContext;
+
+        if (!AudioCtx) return;
+
+        const audioContext = new AudioCtx();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+        const mixedChannel = new Float32Array(audioBuffer.length);
+        const channelsToMix = Math.min(audioBuffer.numberOfChannels, 2);
+
+        for (let channelIndex = 0; channelIndex < channelsToMix; channelIndex++) {
+          const channel = audioBuffer.getChannelData(channelIndex);
+          for (let i = 0; i < channel.length; i++) {
+            mixedChannel[i] += channel[i] / channelsToMix;
+          }
+        }
+
+        const { default: MusicTempo } = await import("music-tempo");
+        const mt = new MusicTempo(Array.from(mixedChannel));
+
+        let bpm: number | null = null;
+
+        if (
+          typeof mt.tempo === "number" &&
+          Number.isFinite(mt.tempo) &&
+          mt.tempo > 0
+        ) {
+          bpm = Math.round(mt.tempo);
+        } else if (Array.isArray(mt.beats) && mt.beats.length > 1) {
+          const intervals: number[] = [];
+          for (let i = 1; i < mt.beats.length; i++) {
+            intervals.push(mt.beats[i] - mt.beats[i - 1]);
+          }
+          const avgInterval =
+            intervals.reduce((sum, value) => sum + value, 0) / intervals.length;
+          const derivedBpm = 60 / avgInterval;
+
+          if (Number.isFinite(derivedBpm) && derivedBpm > 0) {
+            bpm = Math.round(derivedBpm);
+          }
+        }
+
+        if (!cancelled) {
+          setDetectedBpm(bpm);
+        }
+
+        await audioContext.close();
+      } catch (error) {
+        console.error("BPM detektálási hiba:", error);
+        if (!cancelled) {
+          setDetectedBpm(null);
+        }
+      }
+    };
+
+    detectBpmFromSongUrl();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [song?.id, song?.bpm, songUrl]);
 
   useEffect(() => {
     if (!sound) return;
@@ -55,7 +144,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
   useEffect(() => {
     if (!sound) return;
 
-    let frame: number;
+    let frame = 0;
 
     const update = () => {
       const current = sound.seek() as number;
@@ -72,16 +161,6 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
     };
   }, [sound, isPlaying]);
 
-  useEffect(() => {
-    player.setIsPlaying(isPlaying);
-  }, [isPlaying]);
-
-  useEffect(() => {
-    return () => {
-      player.setIsPlaying(false);
-    };
-  }, []);
-
   const handlePlayPause = () => {
     if (!sound) return;
 
@@ -93,33 +172,29 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
   };
 
   const handleNext = () => {
-    if (player.ids.length === 0) return;
+    if (ids.length === 0) return;
 
-    const currentIndex = player.ids.findIndex((id) => id === player.activeId);
-    const nextSong = player.ids[currentIndex + 1];
+    const currentIndex = ids.findIndex((id) => id === activeId);
+    const nextSong = ids[currentIndex + 1];
 
     if (nextSong) {
-      player.setId(nextSong);
+      setId(nextSong);
     }
   };
 
   const handlePrevious = () => {
-    if (player.ids.length === 0) return;
+    if (ids.length === 0) return;
 
-    const currentIndex = player.ids.findIndex((id) => id === player.activeId);
-    const prevSong = player.ids[currentIndex - 1];
+    const currentIndex = ids.findIndex((id) => id === activeId);
+    const prevSong = ids[currentIndex - 1];
 
     if (prevSong) {
-      player.setId(prevSong);
+      setId(prevSong);
     }
   };
 
   const toggleMute = () => {
-    if (volume === 0) {
-      setVolume(1);
-    } else {
-      setVolume(0);
-    }
+    setVolume((current) => (current === 0 ? 1 : 0));
   };
 
   useEffect(() => {
@@ -145,19 +220,16 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
   const PlayIcon = isPlaying ? FaPause : FaPlay;
   const VolumeIcon = volume === 0 ? HiSpeakerXMark : HiSpeakerWave;
 
-  // 🔹 Itt számoljuk ki a BPM feliratot
+  const bpmValue =
+    typeof song?.bpm === "number" && song.bpm > 0 ? song.bpm : detectedBpm;
   const bpmLabel =
-    typeof song?.bpm === "number" && song.bpm > 0
-      ? `${song.bpm} bpm`
-      : "-- bpm";
+    typeof bpmValue === "number" && bpmValue > 0 ? `${bpmValue} bpm` : "-- bpm";
 
   return (
     <div className="flex h-full items-center justify-between px-30 gap-x-4">
-      {/* Bal oldal: borító / cím / BPM / like */}
       <div className="flex items-center gap-x-4 w-[30%] min-w-[120px]">
         <MediaItem data={song} />
 
-        {/* BPM felirat – pontosan a track info és a szív közé téve */}
         <span className="text-xs text-neutral-400 whitespace-nowrap">
           {bpmLabel}
         </span>
@@ -165,9 +237,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
         <LikeButton songId={song.id} />
       </div>
 
-      {/* Közép: vezérlők + progress bar */}
       <div className="flex flex-col items-center justify-center w-[40%] max-w-xl">
-        {/* Gombok */}
         <div className="flex items-center gap-x-4 mb-1">
           <button
             onClick={handlePrevious}
@@ -231,7 +301,6 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
         </div>
       </div>
 
-      {/* Jobb oldal: hangerő */}
       <div className="flex items-center gap-x-2 justify-end w-[30%] min-w-[120px]">
         <button
           onClick={toggleMute}

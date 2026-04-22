@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
+import { supabaseAdmin } from "@/utils/supabase/admin";
 
 type SongForDelete = {
     id: string;
@@ -38,8 +39,17 @@ export async function deleteSongCompletely(songId: string) {
         throw new Error("Ezt a dalt nem törölheted.");
     }
 
+    const { error: likedDeleteError } = await supabaseAdmin
+        .from("liked_songs")
+        .delete()
+        .eq("song_id", songId);
+
+    if (likedDeleteError) {
+        console.error("liked_songs törlési hiba:", likedDeleteError.message);
+    }
+
     if (song.image_path) {
-        const { error: imageRemoveError } = await supabase.storage
+        const { error: imageRemoveError } = await supabaseAdmin.storage
             .from("images")
             .remove([song.image_path]);
 
@@ -49,7 +59,7 @@ export async function deleteSongCompletely(songId: string) {
     }
 
     if (song.song_path) {
-        const { error: songRemoveError } = await supabase.storage
+        const { error: songRemoveError } = await supabaseAdmin.storage
             .from("songs")
             .remove([song.song_path]);
 
@@ -58,7 +68,7 @@ export async function deleteSongCompletely(songId: string) {
         }
     }
 
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
         .from("songs")
         .delete()
         .eq("id", songId);

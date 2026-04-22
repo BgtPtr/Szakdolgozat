@@ -13,26 +13,15 @@ import { useUser } from "@/hooks/useUser";
 const AuthModal = () => {
   const supabaseClient = useSupabase();
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isLoading } = useUser();
   const { onClose, isOpen, view } = useAuthModal();
 
-  /*
   useEffect(() => {
-    if (user && isOpen) {
-      router.refresh();
-      onClose();
-    }
-  }, [user, isOpen, router, onClose]);
-  */
-
-  useEffect(() => {
-    if (!user || !isOpen) return;
+    if (isLoading || !user || !isOpen) return;
 
     onClose();
-
-    // opcionális – csak ha tényleg kell
     router.refresh();
-  }, [user?.id, isOpen]);
+  }, [user?.id, isLoading, isOpen, onClose, router]);
 
   const onChange = (open: boolean) => {
     if (!open) {
@@ -40,9 +29,6 @@ const AuthModal = () => {
     }
   };
 
-
-
-  // TS generikus ütközés miatt itt lazítunk a típuson
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const authSupabaseClient = supabaseClient as any;
 
