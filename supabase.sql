@@ -15,6 +15,22 @@ CREATE TABLE public.liked_songs (
   CONSTRAINT liked_songs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT liked_songs_song_id_fkey FOREIGN KEY (song_id) REFERENCES public.songs(id)
 );
+CREATE TABLE public.playlist_songs (
+  playlist_id uuid NOT NULL,
+  song_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT playlist_songs_pkey PRIMARY KEY (playlist_id, song_id),
+  CONSTRAINT playlist_songs_song_id_fkey FOREIGN KEY (song_id) REFERENCES public.songs(id),
+  CONSTRAINT playlist_songs_playlist_id_fkey FOREIGN KEY (playlist_id) REFERENCES public.playlists(id)
+);
+CREATE TABLE public.playlists (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  user_id uuid NOT NULL,
+  name text NOT NULL,
+  CONSTRAINT playlists_pkey PRIMARY KEY (id),
+  CONSTRAINT playlists_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.prices (
   id text NOT NULL,
   product_id text,
