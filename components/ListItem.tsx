@@ -51,6 +51,7 @@ const ListItem: React.FC<ListItemPops> = ({
                     sizes="64px"
                     src={image}
                     alt="Image"
+                    preload
                 />
             </div>
             <p className="font-medium truncate py-5">

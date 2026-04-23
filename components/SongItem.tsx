@@ -82,6 +82,7 @@ const SongItem: React.FC<SongItemProps> = ({
           className="object-cover"
           src={imgSrc}
           fill
+          loading="eager"
           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 220px"
           alt={data.title ?? "Zeneszám borítója"}
           onError={() => setImgSrc(FALLBACK_IMAGE)}

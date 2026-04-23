@@ -35,6 +35,7 @@ const Liked = async () => {
                                 alt="Playlist"
                                 className="object-cover"
                                 src="/images/liked_.png"
+                                preload
                             />
                         </div>
                         <div className="flex flex-col gap-y-2 mt-4 md:mt-0">
