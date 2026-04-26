@@ -38,7 +38,7 @@ const UploadModal = () => {
     }
   };
 
-    const detectBpmAndDuration = async (
+  const detectBpmAndDuration = async (
     songFile: File
   ): Promise<{ bpm: number | null; duration: number | null }> => {
     if (typeof window === "undefined") {
@@ -66,7 +66,6 @@ const UploadModal = () => {
       const durationSeconds = Math.round(audioBuffer.duration);
       console.log("⏱ Detektált hossz (mp):", durationSeconds);
 
-      // 👉 A hivatalos példa szerint: ha 2 csatorna, átlagoljuk őket
       const audioData: number[] = [];
 
       if (audioBuffer.numberOfChannels >= 2) {
@@ -177,7 +176,6 @@ const UploadModal = () => {
       }
 
       // 4) Sor beszúrása a songs táblába – BPM + duration mezőkkel
-      // Itt castoljuk any-re, hogy ne "never"-ezzen a Supabase típus
       const { error: supabaseError } = await (supabaseClient as any)
         .from("songs")
         .insert({
@@ -186,8 +184,8 @@ const UploadModal = () => {
           author: values.author as string,
           image_path: imageData.path as string,
           song_path: songData.path as string,
-          bpm, // offline számolt BPM
-          duration, // offline számolt hossz (mp)
+          bpm,
+          duration,
         });
 
       if (supabaseError) {
